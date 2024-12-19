@@ -1,6 +1,5 @@
 ---
 tags: [vertical, tabular, advanced]
-dataset: [Titanic]
 framework: [torch, pandas, scikit-learn]
 ---
 
