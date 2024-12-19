@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from flwr.common import ndarrays_to_parameters, parameters_to_ndarrays
+from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score
 
 import torch
 import torch.nn as nn
@@ -67,15 +68,30 @@ class Strategy(fl.server.strategy.FedAvg):
         parameters_aggregated = ndarrays_to_parameters(np_grads)
 
         with torch.no_grad():
-            correct = 0
             output = self.model(embedding_server)
             predicted = (output > 0.5).float()
 
-            correct += (predicted == self.label).sum().item()
-
+            correct = (predicted == self.label).sum().item()
             accuracy = correct / len(self.label) * 100
 
-        metrics_aggregated = {"accuracy": accuracy}
+            # Convert tensors to numpy for metric calculations
+            predicted_np = predicted.cpu().numpy()
+            label_np = self.label.cpu().numpy()
+
+            # Calculate metrics
+            precision = precision_score(label_np, predicted_np, average='binary')
+            recall = recall_score(label_np, predicted_np, average='binary')
+            f1 = f1_score(label_np, predicted_np, average='binary')
+            auc_roc = roc_auc_score(label_np, output.cpu().numpy())
+
+        # Aggregate metrics
+        metrics_aggregated = {
+            "accuracy": accuracy,
+            "precision": precision,
+            "recall": recall,
+            "f1_score": f1,
+            "auc_roc": auc_roc,
+        }
 
         return parameters_aggregated, metrics_aggregated
 
